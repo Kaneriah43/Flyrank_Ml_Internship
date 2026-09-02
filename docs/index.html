@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Refresh Opportunity Scoring — FlyRank ML Internship</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            color: #222;
+            line-height: 1.75;
+            background: #fff;
+        }
+        header {
+            border-bottom: 3px solid #222;
+            padding-bottom: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        h1 {
+            font-size: 2rem;
+            line-height: 1.3;
+            margin-bottom: 0.4rem;
+        }
+        .byline {
+            font-size: 0.95rem;
+            color: #555;
+            font-style: italic;
+        }
+        h2 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 0.3rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        h3 {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 1.2rem;
+            margin-bottom: 0.4rem;
+        }
+        .abstract {
+            background: #f5f5f5;
+            border-left: 5px solid #333;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 0.97rem;
+        }
+        .abstract strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #555;
+        }
+        p { margin-bottom: 1rem; }
+        ul, ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        li { margin-bottom: 0.4rem; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1.2rem 0;
+            font-size: 0.95rem;
+        }
+        th {
+            background: #222;
+            color: #fff;
+            padding: 0.6rem 0.9rem;
+            text-align: left;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 0.55rem 0.9rem;
+        }
+        tr:nth-child(even) td { background: #f9f9f9; }
+        .highlight td:first-child { font-weight: bold; }
+        .metric-row td { font-weight: bold; color: #1a5276; }
+        img {
+            max-width: 100%;
+            margin: 1.2rem 0;
+            border: 1px solid #ddd;
+            display: block;
+        }
+        .fig-caption {
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+            margin-top: -0.8rem;
+            margin-bottom: 1.2rem;
+        }
+        .callout {
+            background: #eaf4fb;
+            border-left: 4px solid #2980b9;
+            padding: 0.9rem 1.2rem;
+            margin: 1.2rem 0;
+            font-size: 0.95rem;
+        }
+        .warning {
+            background: #fef9e7;
+            border-left: 4px solid #f39c12;
+            padding: 0.9rem 1.2rem;
+            margin: 1.2rem 0;
+            font-size: 0.95rem;
+        }
+        code {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 0.1em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        a { color: #1a5276; }
+        a:hover { text-decoration: underline; }
+        .tier-review  { background: #fde8e8; }
+        .tier-monitor { background: #fef9e7; }
+        .tier-hold    { background: #eafaf1; }
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.2rem;
+            border-top: 2px solid #ddd;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+    <h1>Content Refresh Opportunity Scoring</h1>
+    <p class="byline">
+        Harsh · MSc Advanced Computer Science · University of Liverpool ·
+        FlyRank ML Internship Capstone · September 2026
+    </p>
+</header>
+
+<!-- ABSTRACT -->
+<div class="abstract">
+    <strong>Abstract</strong>
+    This paper investigates which content pages in a real anonymized search
+    dataset show observable signals of underperformance relative to their
+    position tier. Using 176,738 page-month records from the FlyRank
+    internship warehouse, a Random Forest classifier was trained to score
+    pages by refresh priority using CTR, impressions, position, and content
+    age as features. The model achieved Precision@50 of 1.000 on a
+    stratified held-out split, compared to 0.640 for a hand-written rule
+    baseline. All results are directional and decision-support only — the
+    output is a ranked editorial queue, not a guarantee of ranking recovery.
+</div>
+
+<!-- 1. INTRODUCTION -->
+<h2>1. Introduction</h2>
+<p>
+    Content teams managing large websites face a prioritisation problem:
+    hundreds of pages compete for limited editorial hours each week.
+    Without a systematic scoring method, teams rely on gut feel or simple
+    rules — "flag anything not updated in 90 days" — that ignore the
+    interaction between content age, visibility, and click-through
+    performance relative to search position.
+</p>
+<p>
+    This paper builds a repeatable scoring model that ranks pages by
+    observed underperformance signals, producing a weekly priority queue
+    a content strategist can act on directly. The output is decision-support,
+    not automation — a human reviewer checks every high-priority candidate
+    before any editorial action is taken.
+</p>
+<div class="callout">
+    <strong>Decision supported:</strong> Which pages should a content team
+    prioritise for review this week, given limited editorial hours?
+</div>
+
+<!-- 2. DATA -->
+<h2>2. Data</h2>
+<p>
+    <strong>Source:</strong> FlyRank ML Internship Warehouse —
+    gated Hugging Face release, anonymized production search data.<br>
+    <strong>Tables used:</strong>
+    <code>fact_content_daily_performance</code> (daily GSC impressions,
+    clicks, position per page) and <code>dim_content</code> (content
+    metadata: type, word count, created/updated dates).<br>
+    <strong>Date window:</strong> month = 2026-03 (mid-panel month).<br>
+    <strong>Rows after filtering:</strong> 176,738 page records.<br>
+    <strong>Unique pages:</strong> aggregated at page-month grain —
+    one row = one content page.
+</p>
+<h3>What was excluded and why</h3>
+<ul>
+    <li>Pages with <code>gsc_data_available = FALSE</code> — no reliable
+        signal to train on</li>
+    <li>Final month (2026-06) — treated as sealed test month to prevent
+        label leakage; using it for label development would let future
+        outcomes contaminate training</li>
+    <li>All client identifiers hashed — no client names, domains, or
+        URLs appear anywhere in this paper or repo</li>
+</ul>
+
+<!-- 3. METHODOLOGY -->
+<h2>3. Methodology</h2>
+
+<h3>Label definition (proxy)</h3>
+<p>
+    No ground-truth refresh outcome exists in the data — there is no column
+    confirming whether a refresh improved performance. A proxy label is
+    constructed: a page is flagged as a priority candidate
+    (<code>is_declining_label = 1</code>) when it has
+    <strong>above-median impressions</strong> AND
+    <strong>below-median CTR for its position tier</strong>.
+    This identifies pages Google is still showing to users but that are
+    underperforming on clicks relative to similar-ranked pages.
+</p>
+<div class="warning">
+    <strong>Honest caveat:</strong> This proxy is an assumption, not a
+    confirmed outcome. A page matching this definition is a candidate for
+    review — not a guaranteed case for refresh.
+</div>
+
+<h3>Features</h3>
+<table>
+    <tr><th>Feature</th><th>Knowable at decision time?</th></tr>
+    <tr><td><code>impressions_90d</code></td><td>✅ 90-day lookback</td></tr>
+    <tr><td><code>clicks_90d</code></td><td>✅ 90-day lookback</td></tr>
+    <tr><td><code>avg_position</code></td><td>✅ historical average</td></tr>
+    <tr><td><code>ctr</code></td><td>✅ derived from clicks/impressions</td></tr>
+    <tr><td><code>days_since_last_update</code></td><td>✅ past date difference</td></tr>
+    <tr><td><code>content_age_days</code></td><td>✅ past date difference</td></tr>
+    <tr><td><code>word_count</code></td><td>✅ static content attribute</td></tr>
+</table>
+
+<h3>Baseline</h3>
+<p>
+    Hand rule — flag pages that are stale (≥90 days since update),
+    visible (above-median impressions), and underperforming CTR at their
+    position tier. Ranked by impressions to break ties.
+</p>
+
+<h3>Model</h3>
+<p>
+    Random Forest classifier: 100 trees, max_depth=5,
+    class_weight=balanced. Starting with a Decision Tree (max_depth=3)
+    as a readable stepping stone. Both compared against the hand rule
+    on the same split and same metric.
+</p>
+
+<h3>Validation design</h3>
+<p>
+    Stratified 80/20 train/test split (random_state=42). Grouped split
+    by client was attempted but failed — positive labels too sparse
+    (1.9% positive rate) to survive client-level partitioning.
+    Stratified split used as honest alternative, guaranteeing both
+    classes appear in train and test.
+</p>
+
+<h3>Leakage check</h3>
+<p>
+    All features confirmed knowable at decision time. Label column
+    excluded from feature set. No future-window columns used.
+    No product flags or client-derived labels introduced.
+</p>
+
+<!-- 4. RESULTS -->
+<h2>4. Results</h2>
+
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Precision@20</th>
+        <th>Precision@50</th>
+    </tr>
+    <tr>
+        <td>Hand rule (baseline)</td>
+        <td>1.000</td>
+        <td>0.640</td>
+    </tr>
+    <tr>
+        <td>Decision Tree (depth=3)</td>
+        <td>0.500</td>
+        <td>0.640</td>
+    </tr>
+    <tr class="metric-row">
+        <td>Random Forest (100 trees)</td>
+        <td>1.000</td>
+        <td>1.000</td>
+    </tr>
+</table>
+
+<img src="figures/model_vs_baseline.png"
+     alt="Model vs baseline Precision@K comparison">
+<p class="fig-caption">
+    Figure 1 — Random Forest outperforms the hand rule at Precision@50,
+    correctly ranking all top-50 priority candidates on the held-out split.
+</p>
+
+<img src="figures/score_distribution.png"
+     alt="Score distribution by action tier">
+<p class="fig-caption">
+    Figure 2 — Priority score distribution across the three action tiers.
+    REVIEW_NOW pages cluster at higher scores; HOLD pages cluster near zero.
+</p>
+
+<img src="figures/ctr_vs_position.png"
+     alt="CTR vs position — flagged vs not flagged">
+<p class="fig-caption">
+    Figure 3 — Flagged pages (orange) show below-median CTR relative to
+    their position tier. The separation is clearest in positions 1–10.
+</p>
+
+<div class="callout">
+    <strong>Key finding:</strong> The Random Forest assigned the highest
+    priority scores to pages with observed below-median CTR at their
+    position tier — a directional signal associated with underperformance.
+    The model beats the hand rule at P@50 by 0.360 on the held-out split.
+</div>
+
+<!-- 5. LIMITATIONS -->
+<h2>5. Limitations & Honest Framing</h2>
+<ul>
+    <li><strong>Proxy label only</strong> — no confirmed refresh outcome
+        exists; the label is a constructed signal, not ground truth</li>
+    <li><strong>One month of data</strong> — patterns may not generalise
+        across seasons or content strategy shifts</li>
+    <li><strong>P@50 = 1.000 caveat</strong> — strong result at 1.9%
+        positive rate, but reflects a clean proxy signal, not confirmed
+        real-world impact</li>
+    <li><strong>Correlation, not causation</strong> — no claim is made
+        that refresh actions cause ranking recovery</li>
+    <li><strong>Client-specific</strong> — model should be retrained before
+        applying to a different domain or content strategy</li>
+    <li><strong>Stratified split limitation</strong> — grouped split by
+        client was attempted but failed due to label sparsity; results
+        may overestimate cross-client generalisability</li>
+    <li><strong>All findings are observed, measured, directional,
+        and decision-support only</strong></li>
+</ul>
+
+<!-- 6. RANKED RECOMMENDATIONS -->
+<h2>6. Ranked Recommendations</h2>
+<p>
+    Every page receives a priority score and is assigned to one of three
+    action tiers. A human reviewer checks every REVIEW_NOW page before
+    acting — the score surfaces candidates, not decisions.
+</p>
+
+<table>
+    <tr>
+        <th>Tier</th>
+        <th>Reason code</th>
+        <th>Recommended action</th>
+        <th>Human check required</th>
+    </tr>
+    <tr class="tier-review">
+        <td><strong>REVIEW_NOW</strong></td>
+        <td><code>high_impressions_low_ctr_for_position</code></td>
+        <td>Prioritise for title, meta, or content review this week</td>
+        <td>Is topic still relevant? Is position realistic?</td>
+    </tr>
+    <tr class="tier-monitor">
+        <td><strong>MONITOR</strong></td>
+        <td><code>moderate_signal_watch_next_month</code></td>
+        <td>Flag for review next cycle if signal persists</td>
+        <td>Check again after next data refresh</td>
+    </tr>
+    <tr class="tier-hold">
+        <td><strong>HOLD</strong></td>
+        <td><code>no_action_needed</code></td>
+        <td>No editorial action needed now</td>
+        <td>None required</td>
+    </tr>
+</table>
+
+<h3>What must never be automated</h3>
+<ul>
+    <li>Publishing content changes based on model score alone</li>
+    <li>Deleting or redirecting low-priority pages</li>
+    <li>Sending client-facing recommendations without human sign-off</li>
+    <li>Making causal claims about refresh impact from model scores</li>
+</ul>
+
+<h3>Monitoring & retrain triggers</h3>
+<ul>
+    <li>Precision@50 drops below 0.5 on a fresh month's data</li>
+    <li>Positive rate drifts more than 50% from baseline (1.9%)</li>
+    <li>More than 3 months since last retrain</li>
+</ul>
+
+<!-- 7. REPRODUCIBILITY -->
+<h2>7. Reproducibility</h2>
+<p>
+    All notebooks are committed to the public repo and can be rerun
+    top-to-bottom. Data access requires a free Hugging Face account
+    and a READ token for the gated FlyRank internship warehouse.
+</p>
+<ul>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship">
+            GitHub repo</a>
+    </li>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship/blob/main/work/notebooks/w02_ml_task_framing.ipynb">
+            W02 — ML Task Framing</a>
+    </li>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship/blob/main/work/notebooks/w04_baseline_score.ipynb">
+            W04 — Baseline Score</a>
+    </li>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship/blob/main/work/notebooks/w05_model.ipynb">
+            W05 — Model</a>
+    </li>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship/blob/main/work/notebooks/w06_methodology_audit.ipynb">
+            W06 — Methodology Audit</a>
+    </li>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship/blob/main/work/notebooks/w07_action_playbook.ipynb">
+            W07 — Action Playbook</a>
+    </li>
+    <li>
+        <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship/blob/main/work/notebooks/capstone.ipynb">
+            Capstone notebook</a>
+    </li>
+</ul>
+
+<!-- 8. ACKNOWLEDGMENTS -->
+<h2>8. Acknowledgments & Data Credit</h2>
+<p>
+    Built on the
+    <a href="https://flyrank.ai">FlyRank ML Internship dataset</a> —
+    real anonymized production search data released for internship
+    research purposes. Data accessed via Hugging Face gated release.
+    No client names, URLs, or private queries appear anywhere in this
+    paper or the associated repository.
+</p>
+<p>
+    MSc Advanced Computer Science · University of Liverpool · 2026.
+</p>
+
+<footer>
+    Harsh · FlyRank ML Internship Capstone · September 2026 ·
+    <a href="https://github.com/Kaneriah43/Flyrank_ML_Internship">
+        github.com/Kaneriah43/Flyrank_ML_Internship</a>
+</footer>
+
+</body>
+</html>
