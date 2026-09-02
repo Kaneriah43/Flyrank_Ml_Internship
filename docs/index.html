@@ -152,33 +152,22 @@
 <!-- ABSTRACT -->
 <div class="abstract">
     <strong>Abstract</strong>
-    This paper investigates which content pages in a real anonymized search
-    dataset show observable signals of underperformance relative to their
-    position tier. Using 176,738 page-month records from the FlyRank
-    internship warehouse, a Random Forest classifier was trained to score
-    pages by refresh priority using CTR, impressions, position, and content
-    age as features. The model achieved Precision@50 of 1.000 on a
-    stratified held-out split, compared to 0.640 for a hand-written rule
-    baseline. All results are directional and decision-support only — the
-    output is a ranked editorial queue, not a guarantee of ranking recovery.
+    This work addresses a real FlyRank content problem: given limited 
+    editorial hours each week, which pages should a content team review 
+    first to recover declining click-through performance?
 </div>
 
 <!-- 1. INTRODUCTION -->
 <h2>1. Introduction</h2>
 <p>
-    Content teams managing large websites face a prioritisation problem:
-    hundreds of pages compete for limited editorial hours each week.
-    Without a systematic scoring method, teams rely on gut feel or simple
-    rules — "flag anything not updated in 90 days" — that ignore the
-    interaction between content age, visibility, and click-through
-    performance relative to search position.
-</p>
-<p>
-    This paper builds a repeatable scoring model that ranks pages by
-    observed underperformance signals, producing a weekly priority queue
-    a content strategist can act on directly. The output is decision-support,
-    not automation — a human reviewer checks every high-priority candidate
-    before any editorial action is taken.
+    FlyRank produces and optimises content at scale for multiple clients. 
+    A recurring operational problem is prioritisation: hundreds of pages compete 
+    for limited editorial hours each week, and without a systematic scoring method, 
+    teams rely on gut feel or simple rules that ignore the interaction between 
+    content age, visibility, and click-through performance relative to search position. 
+    This paper builds a repeatable scoring model that addresses that problem directly — 
+    ranking pages by observed underperformance signals so a content strategist can act 
+    on a clear, human-reviewed queue rather than an arbitrary list.
 </p>
 <div class="callout">
     <strong>Decision supported:</strong> Which pages should a content team
